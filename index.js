@@ -247,7 +247,42 @@ async function run() {
 
     })
 
-    
+    // admin stats ..........................................................................
+
+    app.get('/admin-stats', async(req, res) => {
+      //for user
+      const users = await userCollection.estimatedDocumentCount();
+      // for item or products 
+      const menuItem = await menuCollection.estimatedDocumentCount();
+      // for total order or payment 
+      const orders = await paymentCollection.estimatedDocumentCount();
+      // for total revenue  (not the best way)
+      // const payments = await paymentCollection.find().toArray();
+      // const revenue = payments.reduce((total, payment) => total + payment.price, 0)
+
+      // 2nd method for total revenue 
+      const result = await paymentCollection.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: '$price'
+            }
+          }
+        }
+      ]).toArray();
+
+      const revenue = result.length > 0 ? result[0].totalRevenue : 0;
+
+      res.send({
+        users,
+        menuItem,
+        orders,
+        revenue
+      })
+    })
+
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
